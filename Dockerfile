@@ -4,19 +4,19 @@ COPY sogou-pinyin.deb /tmp
 ENV DEBIAN_FRONTEND=noninteractive
 
 # 中国替换APT源为清华源
-RUN cp /etc/apt/sources.list /etc/apt/sources.list.bak && \
-    sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list && \
-    sed -i 's@/security.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list && \
-    apt update && \
-    apt install curl -y && \
-    COUNTRY_CODE=$(curl -s --connect-timeout 3 --max-time 5 https://ifconfig.co/country-iso | tr -d '[:space:]' | awk '{print toupper($0)}') || COUNTRY_CODE=CN; \
-    if [ "$COUNTRY_CODE" != "CN" ]; then \
-        mv -f /etc/apt/sources.list.bak /etc/apt/sources.list && \
-        apt update; \
-    fi
+# RUN cp /etc/apt/sources.list /etc/apt/sources.list.bak && \
+#     sed -i 's@/archive.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list && \
+#     sed -i 's@/security.ubuntu.com/@/mirrors.aliyun.com/@g' /etc/apt/sources.list && \
+#     apt update && \
+#     apt install curl -y && \
+#     COUNTRY_CODE=$(curl -s --connect-timeout 3 --max-time 5 https://ifconfig.co/country-iso | tr -d '[:space:]' | awk '{print toupper($0)}') || COUNTRY_CODE=CN; \
+#     if [ "$COUNTRY_CODE" != "CN" ]; then \
+#         mv -f /etc/apt/sources.list.bak /etc/apt/sources.list && \
+#         apt update; \
+#     fi
 
 # 安装必要依赖
-RUN \
+RUN apt update && \
     # 安装系统语言包、字体等依赖
     apt install -y locales language-pack-zh-hans fonts-noto-cjk-extra curl \
     && locale-gen zh_CN.UTF-8 \
@@ -32,7 +32,7 @@ RUN \
 
 # 安装中文拼音输入法
 RUN echo "keyboard-configuration keyboard-configuration/layoutcode string cn" | debconf-set-selections
-RUN \
+RUN apt update && \
     # 安装 fcitx 输入法框架
     apt install -y fcitx fcitx-config-gtk fcitx-frontend-all && \
     # 卸载原有 ibus 输入法框架
@@ -40,9 +40,9 @@ RUN \
     # 安装搜狗拼音输入法 (需将 linux/amd64 搜狗拼音输入法 deb 安装包提前放置在构建目录下)
     dpkg --ignore-depends=lsb-core -i /tmp/sogou-pinyin.deb && \
     # 解决可能缺少的依赖
-    apt install libqt5qml5 libqt5quick5 libqt5quickwidgets5 qml-module-qtquick2 && \
-    apt install libgsettings-qt1 && \
-    apt -f install && \
+    apt install -y libqt5qml5 libqt5quick5 libqt5quickwidgets5 qml-module-qtquick2 && \
+    apt install -y libgsettings-qt1 && \
+    apt -f install -y && \
     # 设置默认输入法为 fcitx 并将搜狗输入法设为默认配置文件
     cp /usr/share/applications/fcitx.desktop /etc/xdg/autostart/ && \
     im-config -n fcitx && \
@@ -56,7 +56,7 @@ RUN \
 # 生成微信图标
 RUN APP_ICON_URL=https://res.wx.qq.com/a/wx_fed/assets/res/NTI4MWU5.ico && \
     install_app_icon.sh "$APP_ICON_URL"
-    
+
 # 设置应用名称
 RUN set-cont-env APP_NAME "微信中文版"
 
